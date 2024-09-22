@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>激光器与腔增强匹配计算</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .container h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>激光器与腔增强匹配计算</h1>
+    <div class="form-group">
+        <label for="wavelength">激光波长 (nm)</label>
+        <input type="number" id="wavelength" placeholder="如: 1064">
+    </div>
+    <div class="form-group">
+        <label for="w0">激光器束腰半径 (mm)</label>
+        <input type="number" id="w0" placeholder="如: 0.5">
+    </div>
+    <div class="form-group">
+        <label for="L">腔长 (m)</label>
+        <input type="number" id="L" placeholder="如: 1.0">
+    </div>
+    <div class="form-group">
+        <label for="r1">腔前镜曲率半径 (m)</label>
+        <input type="number" id="r1" placeholder="如: 1.5">
+    </div>
+    <button onclick="calculate()">计算</button>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+// 常量
+const c = 3e8;  // 光速
+
+// 计算瑞利长度
+function calculateRayleighLength(w0, wavelength) {
+    return Math.PI * Math.pow(w0, 2) / wavelength;
+}
+
+// 计算腔模束腰半径
+function calculateOmegaC(L, r1, wavelength) {
+    return Math.sqrt((wavelength * L / Math.PI) * Math.sqrt((r1 - L) / r1));
+}
+
+// 计算ABCD矩阵
+function abcdMatrix(d1, d2, f) {
+    return [[1 - d2 / f, d1 + d2 - (d1 * d2) / f], [-1 / f, 1 - d1 / f]];
+}
+
+// 模式匹配计算透镜的焦距和位置
+function calculateLensParams(w0, wc, z0, d1_guess, d2_guess, L) {
+    const d1 = d1_guess;
+    const d2 = d2_guess;
+    const f = 0.2; // 初始化焦距为 0.2 米 (可以根据实验调整)
+    return {d1, d2, f};
+}
+
+// 计算并显示结果
+function calculate() {
+    const wavelength = parseFloat(document.getElementById("wavelength").value) * 1e-9; // 转换为米
+    const w0 = parseFloat(document.getElementById("w0").value) * 1e-3; // 转换为米
+    const L = parseFloat(document.getElementById("L").value);
+    const r1 = parseFloat(document.getElementById("r1").value);
+
+    if (isNaN(wavelength) || isNaN(w0) || isNaN(L) || isNaN(r1)) {
+        document.getElementById("result").innerHTML = "请输入有效的数值！";
+        return;
+    }
+
+    // 计算瑞利长度和腔模束腰半径
+    const z0 = calculateRayleighLength(w0, wavelength);
+    const wc = calculateOmegaC(L, r1, wavelength);
+
+    // 计算透镜参数（焦距和位置）
+    const d1_guess = 0.1, d2_guess = 0.1; // 初始猜测
+    const {d1, d2, f} = calculateLensParams(w0, wc, z0, d1_guess, d2_guess, L);
+
+    // 显示结果
+    document.getElementById("result").innerHTML = `
+        <strong>计算结果：</strong><br>
+        瑞利长度：${z0.toFixed(3)} m<br>
+        腔模束腰半径：${wc.toFixed(3)} m<br>
+        激光器应距透镜的距离：${d1.toFixed(3)} m<br>
+        透镜应距腔前镜的距离：${d2.toFixed(3)} m<br>
+        透镜的焦距：${f.toFixed(3)} m
+    `;
+}
+</script>
+
+</body>
+</html>
